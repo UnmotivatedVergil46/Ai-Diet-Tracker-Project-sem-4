@@ -74,7 +74,7 @@ AI Diet Assistant is a full-stack application that helps users:
 ## 🛠️ Tech Stack
 - **Frontend**: React, TypeScript, Material UI, Axios
 - **Backend**: Flask, Flask-CORS, Python, Pandas, Requests
-- **AI/LLM**: LM Studio (OpenAI-compatible local server), Phi 3.1 Mini 128k Instruct (recommended)
+- **AI/LLM**: LM Studio (OpenAI-compatible local server), Phi 4 Mini Reasoning Or Phi 3.1 Mini 128k Instruct (recommended)
 - **Data**: CSV-based food database
 - **APIs**: Google Places (for restaurants/stores)
 
@@ -128,7 +128,7 @@ npm start
 
 ### 4. LLM (LM Studio) Setup
 - Download and install [LM Studio](https://lmstudio.ai/)
-- Download the model: **Phi 3.1 Mini 128k Instruct** (IQ3_M or Q4_K_M recommended)
+- Download the model: **Phi 4 Mini Reasoning Or Phi 3.1 Mini 128k Instruct (recommended) **
 - Start LM Studio and load the model
 - Ensure the OpenAI-compatible API server is running at `http://127.0.0.1:1234`
 
@@ -167,7 +167,7 @@ npm start
 
 ## 🙏 Credits
 - [LM Studio](https://lmstudio.ai/) for local LLM serving
-- [Phi 3.1 Mini](https://huggingface.co/microsoft/Phi-3-mini-128k-instruct) for the model
+- [Phi 4 Mini](https://huggingface.co/microsoft/Phi-3-mini-128k-instruct) for the model
 - [Material UI](https://mui.com/) for UI components
 - [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview)
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
