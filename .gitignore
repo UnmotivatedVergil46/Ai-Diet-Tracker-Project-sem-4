@@ -4,10 +4,14 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.venv/
+venv/
 
 # Python
 __pycache__/
 *.py[cod]
+*.pyc
+*.exe
 *$py.class
 *.so
 .Python
