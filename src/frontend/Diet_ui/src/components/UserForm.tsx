@@ -117,10 +117,10 @@ export default function UserForm({ onSubmit }: UserFormProps) {
   const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState<FormState>({
-    age: 25,
+    age: 5,
     gender: '',
-    weight: 70,
-    height: 170,
+    weight: 0,
+    height: 0,
     activityLevel: '',
     dietaryRestrictions: [],
     healthConditions: [],
@@ -200,7 +200,7 @@ export default function UserForm({ onSubmit }: UserFormProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Stack spacing={2.5}>
+            <Stack spacing={1.5}>
               <Box>
                 <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
                   Personal Information
@@ -224,41 +224,44 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                 </RadioGroup>
               </FormControl>
 
-              <Box>
+              <Box sx={{ maxWidth: '50%', mx: 'auto', pl: 3 }}>
                 <Typography variant="body2" gutterBottom sx={{ fontSize: '0.875rem' }}>Age: {formData.age} years</Typography>
                 <Slider
                   value={formData.age}
                   onChange={(_, value) => setFormData({ ...formData, age: value as number })}
-                  min={15}
+                  min={5}
                   max={100}
                   marks={[
-                    { value: 15, label: '15' },
+                    { value: 5, label: '5' },
                     { value: 100, label: '100' },
                   ]}
                   valueLabelDisplay="auto"
+
                   size="small"
                 />
               </Box>
 
-              <Grid container spacing={1}>
+              <Grid container sx={{ maxWidth: '70%', mx: 'auto', spacing: 0.5 }}>
                 <Grid item xs={6}>
+                  <Typography variant="body2" gutterBottom sx={{ fontSize: '0.875rem' }}>Weight (kg)</Typography>
                   <TextField
-                    label="Weight (kg)"
                     type="number"
                     value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, weight: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
                   />
                 </Grid>
                 <Grid item xs={6}>
+                  <Typography variant="body2" gutterBottom sx={{ fontSize: '0.875rem' }}>Height (cm)</Typography>
                   <TextField
-                    label="Height (cm)"
                     type="number"
                     value={formData.height}
-                    onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, height: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     size="small"
+                    inputProps={{ min: 0, step: 0.1 }}
                   />
                 </Grid>
               </Grid>
@@ -529,7 +532,7 @@ export default function UserForm({ onSubmit }: UserFormProps) {
       onSubmit={handleSubmit}
       sx={{
         width: '100%',
-        minHeight: '100vh',
+        minHeight: 'auto',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -537,11 +540,11 @@ export default function UserForm({ onSubmit }: UserFormProps) {
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: 2,
           display: 'flex',
           flexDirection: 'column',
-          gap: 3,
-          flex: 1,
+          gap: 1.5,
+          flex: 0,
           borderRadius: 0,
         }}
       >
@@ -566,11 +569,11 @@ export default function UserForm({ onSubmit }: UserFormProps) {
           ))}
         </Stepper>
 
-        <Box sx={{ mt: 2, flex: 1 }}>
+        <Box sx={{ mt: 1, mb: 2, overflow: 'auto' }}>
           {getStepContent(activeStep)}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 0, pb: 2 }}>
           <Button
             onClick={handleBack}
             disabled={activeStep === 0}
