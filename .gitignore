@@ -49,9 +49,5 @@ yarn-error.log*
 Thumbs.db
 
 # Project specific
-data/*.csv
-data/*.json
-!data/sample_data.json
-models/*.pkl
 logs/
 *.log
