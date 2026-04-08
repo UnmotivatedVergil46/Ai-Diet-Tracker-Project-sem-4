@@ -24,11 +24,13 @@ export interface UserData {
   dietary_restrictions: string[];
   health_conditions: string[];
   preferred_cuisine: string;
+  food_type: string;
   current_mood: string;
   calorieGoal: number;
   proteinGoal: number;
   carbsGoal: number;
   fatGoal: number;
+  waterGoal: number;
 }
 
 interface User {
@@ -70,7 +72,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     // Check for saved user data
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser);
+      console.log('Loading saved user from localStorage:', parsedUser.email);
+      // Also load the user-specific userData
+      const userSpecificData = localStorage.getItem(`userData_${parsedUser.email}`);
+      if (userSpecificData) {
+        parsedUser.userData = JSON.parse(userSpecificData);
+        console.log('Loaded user-specific userData for:', parsedUser.email);
+      } else {
+        console.log('No user-specific data found for:', parsedUser.email);
+      }
+      setUser(parsedUser);
     }
     setIsLoading(false);
   }, []);
@@ -83,16 +95,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       // Mock login - replace with actual authentication
+      const userData = localStorage.getItem(`userData_${email}`);
+      console.log('Login attempt for:', email, 'Has userData:', !!userData);
+      
       const mockUser: User = {
         uid: '123',
         email,
         displayName: email.split('@')[0],
         photoURL: null,
         // Check if we have saved user data
-        userData: JSON.parse(localStorage.getItem(`userData_${email}`) || 'null'),
+        userData: userData ? JSON.parse(userData) : undefined,
       };
       setUser(mockUser);
       localStorage.setItem('user', JSON.stringify(mockUser));
+      console.log('User logged in:', email, 'Redirecting to:', mockUser.userData ? '/dashboard' : '/form');
       navigate(mockUser.userData ? '/dashboard' : '/form');
     } catch (error) {
       console.error('Login error:', error);
@@ -124,6 +140,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // Clear current session but preserve user-specific data for next login
     setUser(null);
     localStorage.removeItem('user');
     navigate('/auth');
@@ -133,17 +150,82 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setIsDarkMode(!isDarkMode);
   };
 
-  const updateUserData = async (data: UserData) => {
+  const updateUserData = async (data: any) => {
     if (!user) return;
+    
+    // Validate required fields
+    if (!data.weight || !data.height || !data.age || !data.gender || !data.activity_level) {
+      console.error('Missing required fields:', { weight: data.weight, height: data.height, age: data.age, gender: data.gender, activity_level: data.activity_level });
+      throw new Error('Please fill in all required fields');
+    }
+    
+    // Calculate BMR and nutritional goals if not already provided
+    let userData: UserData;
+    
+    if (!data.calorieGoal) {
+      try {
+        // Calculate BMR using Harris-Benedict equation
+        const weightKg = Number(data.weight);
+        const heightCm = Number(data.height);
+        const age = Number(data.age);
+        const gender = String(data.gender);
+        
+        if (isNaN(weightKg) || isNaN(heightCm) || isNaN(age)) {
+          throw new Error('Weight, height, and age must be numbers');
+        }
+        
+        let bmr: number;
+        if (gender.toLowerCase() === 'male') {
+          bmr = 88.362 + (13.397 * weightKg) + (4.799 * heightCm) - (5.677 * age);
+        } else {
+          bmr = 447.593 + (9.247 * weightKg) + (3.098 * heightCm) - (4.330 * age);
+        }
+        
+        // Activity multipliers
+        const activityMultipliers: any = {
+          'sedentary': 1.2,
+          'light': 1.375,
+          'moderate': 1.55,
+          'active': 1.725,
+          'very_active': 1.9
+        };
+        
+        const activity_level = String(data.activity_level || 'moderate');
+        const dailyCalories = Math.round(bmr * (activityMultipliers[activity_level] || 1.55));
+        
+        // Calculate macronutrient goals
+        const proteinGoal = Math.round((dailyCalories * 0.3) / 4);
+        const fatGoal = Math.round((dailyCalories * 0.25) / 9);
+        const carbsGoal = Math.round((dailyCalories * 0.45) / 4);
+        const waterGoal = Math.round(weightKg * 35);
+        
+        userData = {
+          ...data,
+          calorieGoal: dailyCalories,
+          proteinGoal,
+          carbsGoal,
+          fatGoal,
+          waterGoal,
+        };
+      } catch (error) {
+        console.error('Error calculating nutritional goals:', error);
+        throw new Error('Failed to calculate nutritional goals');
+      }
+    } else {
+      userData = data;
+    }
     
     const updatedUser = {
       ...user,
-      userData: data,
+      userData,
     };
     
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
-    localStorage.setItem(`userData_${user.email}`, JSON.stringify(data));
+    localStorage.setItem(`userData_${user.email}`, JSON.stringify(userData));
+    // Clear cached diet plan so it regenerates with updated profile data
+    localStorage.removeItem(`dietPlan_${user.email}`);
+    console.log('User data updated and saved for:', user.email, 'Nutritional goals calculated');
     navigate('/dashboard');
   };
 

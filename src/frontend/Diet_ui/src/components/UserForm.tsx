@@ -16,6 +16,7 @@ import {
   Slider,
   Chip,
   Stack,
+  Grid,
   useTheme,
   alpha,
   IconButton,
@@ -40,6 +41,8 @@ interface FormState {
   activityLevel: string;
   dietaryRestrictions: string[];
   healthConditions: string[];
+  foodType: string;
+  mood: string;
   goal: string;
 }
 
@@ -52,6 +55,7 @@ interface UserFormData {
   dietary_restrictions: string[];
   health_conditions: string[];
   preferred_cuisine: string;
+  food_type: string;
   current_mood: string;
 }
 
@@ -62,31 +66,44 @@ interface UserFormProps {
 const dietaryOptions = [
   'Vegetarian',
   'Vegan',
+  'Non-Vegetarian',
   'Gluten-Free',
   'Dairy-Free',
+  'Nut-Free',
   'Keto',
   'Paleo',
-  'Mediterranean',
-  'Low-Carb',
-  'Low-Fat',
 ];
 
-const healthConditions = [
+const healthOptions = [
   'Diabetes',
+  'High Cholesterol',
   'Hypertension',
-  'Heart Disease',
-  'Celiac Disease',
-  'Lactose Intolerance',
-  'Food Allergies',
+  'Kidney Disease',
+  'Thyroid (Hypothyroidism)',
+  'Anemia',
+  'Gout',
+  'Osteoporosis',
+  'PCOS',
+  'GERD/Acid Reflux',
+  'IBS',
   'None',
+];
+
+const foodTypeOptions = [
+  { value: 'general', label: 'General/Mixed' },
+  { value: 'indian', label: 'Indian' },
+  { value: 'american', label: 'American' },
+  { value: 'mediterranean', label: 'Mediterranean' },
+  { value: 'asian', label: 'Asian' },
+  { value: 'anything goes', label: 'Anything Goes' },
 ];
 
 const activityLevels = [
   { value: 'sedentary', label: 'Sedentary', description: 'Little or no exercise' },
   { value: 'light', label: 'Lightly Active', description: '1-3 days/week' },
   { value: 'moderate', label: 'Moderately Active', description: '3-5 days/week' },
-  { value: 'very', label: 'Very Active', description: '6-7 days/week' },
-  { value: 'extra', label: 'Extra Active', description: 'Very intense exercise daily' },
+  { value: 'active', label: 'Very Active', description: '6-7 days/week' },
+  { value: 'very_active', label: 'Extra Active', description: 'Very intense exercise daily' },
 ];
 
 const goals = [
@@ -107,10 +124,12 @@ export default function UserForm({ onSubmit }: UserFormProps) {
     activityLevel: '',
     dietaryRestrictions: [],
     healthConditions: [],
+    foodType: 'general',
+    mood: 'neutral',
     goal: '',
   });
 
-  const steps = ['Basic Info', 'Activity Level', 'Diet & Health', 'Goals'];
+  const steps = ['Basic Info', 'Activity', 'Preferences', 'Goals'];
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -122,6 +141,23 @@ export default function UserForm({ onSubmit }: UserFormProps) {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    
+    // Validate required fields
+    if (!formData.gender) {
+      alert('Please select your gender');
+      return;
+    }
+    
+    if (!formData.activityLevel) {
+      alert('Please select your activity level');
+      return;
+    }
+    
+    if (formData.weight <= 0 || formData.height <= 0) {
+      alert('Please enter valid weight and height values');
+      return;
+    }
+    
     const submissionData: UserFormData = {
       age: formData.age,
       gender: formData.gender,
@@ -130,8 +166,9 @@ export default function UserForm({ onSubmit }: UserFormProps) {
       activity_level: formData.activityLevel,
       dietary_restrictions: formData.dietaryRestrictions,
       health_conditions: formData.healthConditions,
-      preferred_cuisine: 'any',
-      current_mood: 'neutral',
+      preferred_cuisine: formData.foodType,
+      food_type: formData.foodType,
+      current_mood: formData.mood,
     };
     onSubmit(submissionData);
   };
@@ -163,31 +200,32 @@ export default function UserForm({ onSubmit }: UserFormProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Stack spacing={4}>
+            <Stack spacing={2.5}>
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  Tell us about yourself
+                <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
+                  Personal Information
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  We'll use this information to create your personalized diet plan
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  Basic details to personalize your diet plan
                 </Typography>
               </Box>
 
-              <FormControl fullWidth>
+              <FormControl size="small" fullWidth>
                 <FormLabel>Gender</FormLabel>
                 <RadioGroup
                   row
                   value={formData.gender}
                   onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  sx={{ gap: 0.5 }}
                 >
-                  <FormControlLabel value="male" control={<Radio />} label="Male" />
-                  <FormControlLabel value="female" control={<Radio />} label="Female" />
-                  <FormControlLabel value="other" control={<Radio />} label="Other" />
+                  <FormControlLabel value="male" control={<Radio size="small" />} label="Male" />
+                  <FormControlLabel value="female" control={<Radio size="small" />} label="Female" />
+                  <FormControlLabel value="other" control={<Radio size="small" />} label="Other" />
                 </RadioGroup>
               </FormControl>
 
               <Box>
-                <Typography gutterBottom>Age</Typography>
+                <Typography variant="body2" gutterBottom sx={{ fontSize: '0.875rem' }}>Age: {formData.age} years</Typography>
                 <Slider
                   value={formData.age}
                   onChange={(_, value) => setFormData({ ...formData, age: value as number })}
@@ -198,25 +236,32 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                     { value: 100, label: '100' },
                   ]}
                   valueLabelDisplay="auto"
+                  size="small"
                 />
               </Box>
 
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Weight (kg)"
-                  type="number"
-                  value={formData.weight}
-                  onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })}
-                  fullWidth
-                />
-                <TextField
-                  label="Height (cm)"
-                  type="number"
-                  value={formData.height}
-                  onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
-                  fullWidth
-                />
-              </Stack>
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Weight (kg)"
+                    type="number"
+                    value={formData.weight}
+                    onChange={(e) => setFormData({ ...formData, weight: Number(e.target.value) })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    label="Height (cm)"
+                    type="number"
+                    value={formData.height}
+                    onChange={(e) => setFormData({ ...formData, height: Number(e.target.value) })}
+                    fullWidth
+                    size="small"
+                  />
+                </Grid>
+              </Grid>
             </Stack>
           </motion.div>
         );
@@ -228,23 +273,23 @@ export default function UserForm({ onSubmit }: UserFormProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Stack spacing={4}>
+            <Stack spacing={2.5}>
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  What's your activity level?
+                <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
+                  Activity Level
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  This helps us calculate your daily calorie needs
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  Helps calculate your daily calorie needs
                 </Typography>
               </Box>
 
-              <Stack spacing={2}>
+              <Stack spacing={1}>
                 {activityLevels.map((level) => (
                   <Paper
                     key={level.value}
                     onClick={() => setFormData({ ...formData, activityLevel: level.value })}
                     sx={{
-                      p: 2,
+                      p: 1.5,
                       cursor: 'pointer',
                       border: 2,
                       borderColor: formData.activityLevel === level.value ? 'primary.main' : 'transparent',
@@ -258,11 +303,11 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                       },
                     }}
                   >
-                    <Stack direction="row" alignItems="center" spacing={2}>
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
                       <Box
                         sx={{
-                          width: 48,
-                          height: 48,
+                          width: 40,
+                          height: 40,
                           borderRadius: '50%',
                           display: 'flex',
                           alignItems: 'center',
@@ -277,14 +322,15 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                             color: formData.activityLevel === level.value 
                               ? 'white'
                               : 'primary.main',
+                            fontSize: '1.25rem'
                           }}
                         />
                       </Box>
                       <Box>
-                        <Typography variant="subtitle1" fontWeight={500}>
+                        <Typography variant="body2" fontWeight={500}>
                           {level.label}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary">
                           {level.description}
                         </Typography>
                       </Box>
@@ -303,27 +349,64 @@ export default function UserForm({ onSubmit }: UserFormProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Stack spacing={4}>
+            <Stack spacing={3}>
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  Dietary Preferences & Health
+                <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
+                  Dietary Preferences
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Help us understand your dietary needs and health conditions
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  Your dietary needs and preferences
                 </Typography>
               </Box>
 
+              {/* Prominent Cuisine Selector */}
+              <Box sx={{ p: 2.5, bgcolor: 'primary.main', borderRadius: 2, color: 'white', boxShadow: 3 }}>
+                <Typography variant="subtitle1" fontWeight={600} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  🍽️ Preferred Cuisine Type
+                </Typography>
+                <Typography variant="caption" sx={{ opacity: 0.9, mb: 1.5, display: 'block' }}>
+                  Select your preferred cuisine for meal recommendations
+                </Typography>
+                <Grid container spacing={1}>
+                  {foodTypeOptions.map((option) => (
+                    <Grid item xs={6} sm={4} key={option.value}>
+                      <Paper
+                        onClick={() => setFormData({ ...formData, foodType: option.value })}
+                        sx={{
+                          p: 1.5,
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          bgcolor: formData.foodType === option.value ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)',
+                          color: 'white',
+                          border: formData.foodType === option.value ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            transform: 'translateY(-2px)',
+                          },
+                        }}
+                      >
+                        <Typography variant="body2" fontWeight={500}>
+                          {option.label}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+
               <Box>
-                <Typography variant="subtitle1" gutterBottom>
+                <Typography variant="body2" fontWeight={500} gutterBottom>
                   Dietary Restrictions
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                   {dietaryOptions.map((diet) => (
                     <Chip
                       key={diet}
                       label={diet}
                       onClick={() => handleDietaryToggle(diet)}
                       color={formData.dietaryRestrictions.includes(diet) ? 'primary' : 'default'}
+                      size="small"
                       sx={{
                         transition: 'all 0.3s ease',
                         '&:hover': {
@@ -336,21 +419,20 @@ export default function UserForm({ onSubmit }: UserFormProps) {
               </Box>
 
               <Box>
-                <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" fontWeight={500} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   Health Conditions
-                  <Tooltip title="This information helps us provide safer meal recommendations">
-                    <IconButton size="small">
-                      <InfoIcon fontSize="small" />
-                    </IconButton>
+                  <Tooltip title="Select if you have any conditions that affect your diet">
+                    <InfoIcon fontSize="small" sx={{ opacity: 0.6 }} />
                   </Tooltip>
                 </Typography>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {healthConditions.map((condition) => (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                  {healthOptions.map((condition) => (
                     <Chip
                       key={condition}
                       label={condition}
                       onClick={() => handleHealthToggle(condition)}
                       color={formData.healthConditions.includes(condition) ? 'primary' : 'default'}
+                      size="small"
                       sx={{
                         transition: 'all 0.3s ease',
                         '&:hover': {
@@ -372,13 +454,13 @@ export default function UserForm({ onSubmit }: UserFormProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Stack spacing={4}>
+            <Stack spacing={2.5}>
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  What's your primary goal?
+                <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem' }}>
+                  Primary Goal
                 </Typography>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  We'll tailor your diet plan to help you achieve this goal
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                  What would you like to achieve?
                 </Typography>
               </Box>
 
@@ -455,10 +537,10 @@ export default function UserForm({ onSubmit }: UserFormProps) {
       <Paper
         elevation={0}
         sx={{
-          p: 4,
+          p: 3,
           display: 'flex',
           flexDirection: 'column',
-          gap: 4,
+          gap: 3,
           flex: 1,
           borderRadius: 0,
         }}
@@ -484,11 +566,11 @@ export default function UserForm({ onSubmit }: UserFormProps) {
           ))}
         </Stepper>
 
-        <Box sx={{ mt: 4, flex: 1 }}>
+        <Box sx={{ mt: 2, flex: 1 }}>
           {getStepContent(activeStep)}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1 }}>
           <Button
             onClick={handleBack}
             disabled={activeStep === 0}

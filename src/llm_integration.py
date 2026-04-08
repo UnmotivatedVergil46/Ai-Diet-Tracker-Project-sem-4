@@ -1,12 +1,11 @@
 import requests
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional,Mapping
 
 logger = logging.getLogger(__name__)
 
 LLM_API_URL = "http://127.0.0.1:1234"
-
 def get_meal_suggestions(user_profile: Dict[str, Any], meal_nutrients: Dict[str, float], meal_number: int, 
                         mood: str = None, preferred_cuisine: str = None) -> Optional[str]: # pyright: ignore[reportArgumentType]
     """Get personalized meal suggestions with cultural preferences and mood considerations"""
@@ -84,7 +83,7 @@ Include a difficulty rating (Easy/Medium/Hard) and estimated cost ($-$$$)."""
         return generate_fallback_suggestion(meal_nutrients, meal_number, mood, preferred_cuisine)
 
 def generate_fallback_suggestion(meal_nutrients: Dict[str, float], meal_number: int, 
-                               mood: str = None, preferred_cuisine: str = None) -> str: # pyright: ignore[reportArgumentType]
+                               mood: str = None, preferred_cuisine: str = None,) -> str: # pyright: ignore[reportArgumentType]
     """Generate a basic meal suggestion with cultural and mood considerations"""
     meal_time = {
         1: "breakfast",
@@ -108,9 +107,9 @@ def generate_fallback_suggestion(meal_nutrients: Dict[str, float], meal_number: 
     # Select protein source based on cuisine or dietary preference
     if preferred_cuisine and preferred_cuisine.lower() in cuisine_proteins:
         protein_options = cuisine_proteins[preferred_cuisine.lower()]
-    elif "vegetarian" in (user_profile.get('dietary_restrictions') or []):
+    elif "vegetarian" in (user_profile.get('dietary_restrictions') or []): # pyright: ignore[reportUndefinedVariable]
         protein_options = cuisine_proteins["vegetarian"]
-    elif "vegan" in (user_profile.get('dietary_restrictions') or []):
+    elif "vegan" in (user_profile.get('dietary_restrictions') or []): # pyright: ignore[reportUndefinedVariable]
         protein_options = cuisine_proteins["vegan"]
     else:
         protein_options = default_proteins
@@ -173,7 +172,7 @@ def get_mood_benefits(mood: str) -> str:
     }
     return benefits.get(mood.lower(), "Balanced nutrition for overall well-being")
 
-def get_diet_explanation(user_profile: Dict[str, Any], total_nutrition: Dict[str, float]) -> Optional[str]:
+def get_diet_explanation(user_profile: Dict[str, Any], total_nutrition: Mapping[str, float]) -> Optional[str]:
     """Get an overall explanation of the diet plan with enhanced health insights"""
     try:
         prompt = f"""As a nutrition expert, provide a comprehensive explanation of this diet plan's suitability for the user:
@@ -226,7 +225,7 @@ Please provide:
         logger.error(f"Error getting diet explanation: {str(e)}")
         return generate_fallback_explanation(user_profile, total_nutrition)
 
-def generate_fallback_explanation(user_profile: Dict[str, Any], total_nutrition: Dict[str, float]) -> str:
+def generate_fallback_explanation(user_profile: Dict[str, Any], total_nutrition: Mapping[str, float]) -> str:
     """Generate a basic diet plan explanation based on user profile and nutrition totals"""
     activity_factor = {
         'sedentary': 1.2,

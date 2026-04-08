@@ -33,6 +33,8 @@ import {
   DirectionsRun as DirectionsRunIcon,
   Favorite as FavoriteIcon,
   CheckCircle as CheckCircleIcon,
+  SwapHoriz as SwapHorizIcon,
+  Opacity as OpacityIcon,
 } from '@mui/icons-material';
 import { useUser } from '../contexts/UserContext';
 import { useProgress, Achievement } from '../contexts/ProgressContext';
@@ -42,6 +44,21 @@ import { motion } from 'framer-motion';
 const MotionPaper = motion(Paper);
 const MotionBox = motion(Box);
 const MotionListItem = motion(ListItem);
+
+// Define Meal interface
+interface Meal {
+  id: string;
+  time: string;
+  name: string;
+  calories: number;
+  completed: boolean;
+  items: string[];
+  macros: {
+    protein: number;
+    carbs: number;
+    fat: number;
+  };
+}
 
 // Define getRarityColor function outside the component
 const getRarityColor = (rarity: string) => {
@@ -57,7 +74,7 @@ const getRarityColor = (rarity: string) => {
   }
 };
 
-export default function Dashboard() {
+export default function Dashboard({ dietPlan, onGenerateNewPlan }: any) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, getUserData } = useUser();
@@ -91,13 +108,31 @@ export default function Dashboard() {
   };
 
   // Define meals with dynamic completion status
-  const [todaysMeals, setTodaysMeals] = useState([
-    {
-      id: 'breakfast',
-      time: '8:00 AM',
-      name: 'Breakfast',
-      calories: 450,
-      completed: todayProgress.meals.breakfast,
+  const [todaysMeals, setTodaysMeals] = useState<Meal[]>(() => {
+    if (dietPlan && dietPlan.meals) {
+      return dietPlan.meals.map((meal: any) => ({
+        id: meal.name.toLowerCase(),
+        time: meal.time,
+        name: meal.name,
+        calories: meal.calories,
+        completed: todayProgress.meals[meal.name.toLowerCase() as keyof typeof todayProgress.meals],
+        items: meal.ingredients.slice(0, 3), // Ensure at least first 3 ingredients are shown
+        macros: {
+          protein: meal.protein,
+          carbs: meal.carbs,
+          fat: meal.fat
+        }
+      }));
+    }
+    
+    // Fallback to default meals if no diet plan
+    return [
+      {
+        id: 'breakfast',
+        time: '8:00 AM',
+        name: 'Breakfast',
+        calories: 450,
+        completed: todayProgress.meals.breakfast,
       items: ['Oatmeal with berries', 'Greek yogurt', 'Almonds'],
       macros: {
         protein: 20,
@@ -131,10 +166,11 @@ export default function Dashboard() {
         fat: 20
       }
     }
-  ]);
+    ];
+  });
 
   // Handle meal completion toggle
-  const handleMealToggle = async (mealId: string, meal: any) => {
+  const handleMealToggle = async (mealId: string, meal: Meal) => {
     const newCompleted = !meal.completed;
     
     // Update meal completion status
@@ -152,8 +188,8 @@ export default function Dashboard() {
     }
 
     // Update local state
-    setTodaysMeals(prevMeals => 
-      prevMeals.map(m => 
+    setTodaysMeals((prevMeals: Meal[]) => 
+      prevMeals.map((m: Meal) => 
         m.id === mealId ? { ...m, completed: newCompleted } : m
       )
     );
@@ -169,8 +205,8 @@ export default function Dashboard() {
       
       // Update meals based on current time
       const now = new Date();
-      setTodaysMeals(prevMeals => 
-        prevMeals.map(meal => {
+      setTodaysMeals((prevMeals: Meal[]) => 
+        prevMeals.map((meal: Meal) => {
           const [hours, minutes] = meal.time.split(':');
           const period = meal.time.includes('PM') ? 'PM' : 'AM';
           let mealHour = parseInt(hours);
@@ -197,6 +233,29 @@ export default function Dashboard() {
   const calculateCaloriesLeft = () => {
     const dailyGoal = getUserData()?.calorieGoal || 2000;
     return dailyGoal - (todayProgress?.calories || 0);
+  };
+
+  // Calculate water consumed from completed meals
+  const calculateWaterConsumed = () => {
+    if (!dietPlan || !dietPlan.meals) return 0;
+    let totalWater = 0;
+    dietPlan.meals.forEach((meal: any) => {
+      // Check if meal is completed using the meal index
+      const mealNames = ['breakfast', 'lunch', 'dinner'];
+      const mealIndex = mealNames.findIndex(name => name === meal.name?.toLowerCase());
+      if (mealIndex !== -1) {
+        const mealKey = mealNames[mealIndex] as keyof typeof todayProgress.meals;
+        if (todayProgress.meals[mealKey]) {
+          totalWater += meal.water || 0;
+        }
+      }
+    });
+    return totalWater;
+  };
+
+  // Get water goal
+  const getWaterGoal = () => {
+    return dietPlan?.nutrition?.water || 2000;
   };
 
   // Calculate real-time progress percentages
@@ -342,17 +401,24 @@ export default function Dashboard() {
                 },
                 {
                   icon: <DirectionsRunIcon />,
-                  value: `${todaysMeals.filter(meal => meal.completed).length}/${todaysMeals.length}`,
+                  value: `${todaysMeals.filter((meal: Meal) => meal.completed).length}/${todaysMeals.length}`,
                   label: 'Meals Completed',
                   color: '#34D399',
                   bgColor: 'rgba(52, 211, 153, 0.15)'
                 },
                 {
                   icon: <WhatshotIcon />,
-                  value: `${Math.round((todaysMeals.filter(meal => meal.completed).length / todaysMeals.length) * 100)}%`,
+                  value: `${Math.round((todaysMeals.filter((meal: Meal) => meal.completed).length / todaysMeals.length) * 100)}%`,
                   label: 'Daily Goal',
                   color: '#FBBF24',
                   bgColor: 'rgba(251, 191, 36, 0.15)'
+                },
+                {
+                  icon: <OpacityIcon />,
+                  value: `${calculateWaterConsumed()}/${getWaterGoal()} ml`,
+                  label: 'Water Intake',
+                  color: '#38BDF8',
+                  bgColor: 'rgba(56, 189, 248, 0.15)'
                 },
                 {
                   icon: <FavoriteIcon />,
@@ -445,19 +511,34 @@ export default function Dashboard() {
                 : 'none',
             }}
           >
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                mb: 3,
-                color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#2D3748',
-                fontSize: '1.25rem',
-                fontWeight: 600,
-              }}
-            >
-              Today's Meals
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#2D3748',
+                  fontSize: '1.25rem',
+                  fontWeight: 600,
+                }}
+              >
+                Today's Meals
+              </Typography>
+              {onGenerateNewPlan && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<SwapHorizIcon />}
+                  onClick={onGenerateNewPlan}
+                  sx={{
+                    textTransform: 'none',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  New Plan
+                </Button>
+              )}
+            </Box>
             <List>
-              {todaysMeals.map((meal, index) => (
+              {todaysMeals.map((meal: Meal, index: number) => (
                 <React.Fragment key={meal.id}>
                   <MotionListItem
                     onClick={() => handleMealToggle(meal.id, meal)}

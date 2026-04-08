@@ -79,6 +79,7 @@ interface DietPlanProps {
       protein: number;
       carbs: number;
       fat: number;
+      water: number;
       ingredients: string[];
     }>;
     nutrition: {
@@ -86,12 +87,14 @@ interface DietPlanProps {
       protein: number;
       carbs: number;
       fat: number;
+      water: number;
     };
     shoppingList: string[];
     recommendation?: string;
     explanation?: string;
   } | null;
   onBack: () => void;
+  onGenerateNewPlan?: () => void;
 }
 
 interface Restaurant {
@@ -121,7 +124,7 @@ const MotionCard = motion(Card);
 const MotionBox = motion(Box);
 const MotionListItem = motion(ListItem);
 
-export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
+export default function DietPlanView({ dietPlan, onBack, onGenerateNewPlan }: DietPlanProps) {
   const [shoppingListOpen, setShoppingListOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
@@ -175,6 +178,19 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
     }
   };
 
+  // Calculate water consumed from completed meals
+  const calculateWaterConsumed = () => {
+    if (!dietPlan) return 0;
+    let totalWater = 0;
+    dietPlan.meals.forEach((meal, index) => {
+      const mealKey = ['breakfast', 'lunch', 'dinner'][index] as keyof typeof todayProgress.meals;
+      if (todayProgress.meals[mealKey]) {
+        totalWater += meal.water;
+      }
+    });
+    return totalWater;
+  };
+
   const handleMealComplete = async (index: number, meal: any) => {
     if (!dietPlan) return;
     
@@ -184,15 +200,35 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
     // Update meal completion status
     await toggleMealCompletion(today, mealId as 'breakfast' | 'lunch' | 'dinner', newCompleted);
     
-    // Update nutrition progress if meal is completed
+    // Calculate total nutrition from ALL completed meals
+    let totalCalories = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFat = 0;
+    
+    dietPlan.meals.forEach((mealItem: any, idx: number) => {
+      const mealKey = ['breakfast', 'lunch', 'dinner'][idx] as keyof typeof todayProgress.meals;
+      // Include the meal if it will be completed (or is already completed and not being unchecked)
+      const isCompleted = newCompleted && idx === index ? true : (idx !== index && todayProgress.meals[mealKey]);
+      
+      if (isCompleted) {
+        totalCalories += mealItem.calories;
+        totalProtein += mealItem.protein;
+        totalCarbs += mealItem.carbs;
+        totalFat += mealItem.fat;
+      }
+    });
+    
+    // Update nutrition progress with total from all completed meals
+    await updateNutritionProgress(today, {
+      calories: totalCalories,
+      protein: totalProtein,
+      carbs: totalCarbs,
+      fat: totalFat,
+      water: 500 // Default water intake per meal
+    });
+    
     if (newCompleted) {
-      await updateNutritionProgress(today, {
-        calories: meal.calories,
-        protein: meal.protein,
-        carbs: meal.carbs,
-        fat: meal.fat,
-        water: 500 // Default water intake per meal
-      });
       showNotification(`Great job! You've completed your ${mealId} meal!`, 'success');
     } else {
       showNotification(`Meal marked as incomplete. You can complete it later.`, 'info');
@@ -231,16 +267,19 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
   };
 
   const calculateProgress = () => {
-    if (!dietPlan) return { caloriesPercent: 0, proteinPercent: 0, carbsPercent: 0 };
+    if (!dietPlan) return { caloriesPercent: 0, proteinPercent: 0, carbsPercent: 0, waterPercent: 0 };
     
     const totalCalories = dietPlan.nutrition.calories;
     const totalProtein = dietPlan.nutrition.protein;
     const totalCarbs = dietPlan.nutrition.carbs;
+    const totalWater = dietPlan.nutrition.water;
+    const waterConsumed = calculateWaterConsumed();
     
     return {
       caloriesPercent: Math.round((todayProgress.calories / totalCalories) * 100),
       proteinPercent: Math.round((todayProgress.protein / totalProtein) * 100),
-      carbsPercent: Math.round((todayProgress.carbs / totalCarbs) * 100)
+      carbsPercent: Math.round((todayProgress.carbs / totalCarbs) * 100),
+      waterPercent: Math.round((waterConsumed / totalWater) * 100)
     };
   };
 
@@ -347,23 +386,38 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        sx={{ mb: 4 }}
+        sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
       >
-        <Typography 
-          variant="h4" 
-          gutterBottom 
-          sx={{ 
-            background: 'linear-gradient(45deg, #4A90E2 30%, #9B51E0 90%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 'bold'
-          }}
-        >
-          Your Personalized Diet Plan
-        </Typography>
-        <Typography variant="subtitle1" color="text.secondary">
-          Based on your goals and preferences, here's your daily meal plan
-        </Typography>
+        <Box>
+          <Typography 
+            variant="h4" 
+            gutterBottom 
+            sx={{ 
+              background: 'linear-gradient(45deg, #4A90E2 30%, #9B51E0 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              fontWeight: 'bold'
+            }}
+          >
+            Your Personalized Diet Plan
+          </Typography>
+          <Typography variant="subtitle1" color="text.secondary">
+            Based on your goals and preferences, here's your daily meal plan
+          </Typography>
+        </Box>
+        {onGenerateNewPlan && (
+          <Button
+            variant="outlined"
+            startIcon={<SwapHorizIcon />}
+            onClick={onGenerateNewPlan}
+            sx={{
+              minWidth: 200,
+              height: 'fit-content'
+            }}
+          >
+            Generate New Plan
+          </Button>
+        )}
       </MotionBox>
 
       {/* Progress Overview */}
@@ -410,21 +464,29 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
                   target: dietPlan.nutrition.carbs,
                   percent: progress.carbsPercent,
                   color: '#FBBF24'
+                },
+                { 
+                  label: 'Water', 
+                  value: calculateWaterConsumed(),
+                  target: dietPlan.nutrition.water,
+                  unit: 'ml',
+                  percent: progress.waterPercent,
+                  color: '#38BDF8'
                 }
               ].map((item, index) => (
-                <Grid item xs={12} sm={4} key={index}>
+                <Grid item xs={12} sm={6} key={index}>
                   <Box sx={{ mb: 2 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <Typography variant="body2" color="text.secondary">
                         {item.label}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {item.value}/{item.target}
+                        {item.value}/{item.target}{item.unit || ''}
                       </Typography>
                     </Box>
                     <LinearProgress
                       variant="determinate"
-                      value={item.percent}
+                      value={Math.min(item.percent, 100)}
                       color={getProgressColor(item.percent)}
                       sx={{
                         height: 8,
@@ -505,17 +567,26 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
                   <Collapse in={expandedMeal === index}>
                     <Box sx={{ pl: 7 }}>
                       <Typography variant="subtitle2" gutterBottom sx={{ color: 'text.secondary', mb: 2 }}>
-                        Ingredients:
+                        Ingredients ({meal.ingredients.length} items):
                       </Typography>
                       <List dense>
-                        {meal.ingredients.map((ingredient, idx) => (
-                          <ListItem key={idx}>
-                            <ListItemIcon>
-                              <LocalDiningIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText primary={ingredient} />
+                        {meal.ingredients.length >= 3 ? (
+                          meal.ingredients.map((ingredient, idx) => (
+                            <ListItem key={idx}>
+                              <ListItemIcon>
+                                <LocalDiningIcon fontSize="small" />
+                              </ListItemIcon>
+                              <ListItemText 
+                                primary={ingredient}
+                                secondary={`${idx + 1}/${meal.ingredients.length}`}
+                              />
+                            </ListItem>
+                          ))
+                        ) : (
+                          <ListItem>
+                            <ListItemText primary="At least 3 ingredients are included in this meal" />
                           </ListItem>
-                        ))}
+                        )}
                       </List>
 
                       <Typography variant="subtitle2" gutterBottom sx={{ color: 'text.secondary', mt: 2, mb: 2 }}>
@@ -525,9 +596,10 @@ export default function DietPlanView({ dietPlan, onBack }: DietPlanProps) {
                         {[
                           { label: 'Protein', value: meal.protein, unit: 'g' },
                           { label: 'Carbs', value: meal.carbs, unit: 'g' },
-                          { label: 'Fat', value: meal.fat, unit: 'g' }
+                          { label: 'Fat', value: meal.fat, unit: 'g' },
+                          { label: 'Water', value: meal.water, unit: 'ml' }
                         ].map((nutrient, idx) => (
-                          <Grid item xs={4} key={idx}>
+                          <Grid item xs={3} key={idx}>
                             <Box sx={{ textAlign: 'center' }}>
                               <Typography variant="h6">
                                 {nutrient.value}{nutrient.unit}

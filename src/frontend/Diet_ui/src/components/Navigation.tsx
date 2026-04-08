@@ -45,6 +45,7 @@ import {
 } from '@mui/icons-material';
 import { useUser } from '../contexts/UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import Settings from './Settings';
 
 interface NavigationProps {
   currentPage: 'form' | 'plan' | 'dashboard' | 'progress' | 'achievements';
@@ -60,6 +61,7 @@ export default function Navigation({ currentPage, isOpen, onToggle, showBackButt
   const { user, logout, toggleTheme, isDarkMode } = useUser();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [notificationAnchor, setNotificationAnchor] = useState<null | HTMLElement>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const navigationItems = [
     { 
@@ -517,13 +519,23 @@ export default function Navigation({ currentPage, isOpen, onToggle, showBackButt
           </Typography>
         </Box>
         <Divider />
-        <MenuItem>
+        <MenuItem
+          onClick={() => {
+            navigate('/profile');
+            handleClose();
+          }}
+        >
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
           Your Profile
         </MenuItem>
-        <MenuItem>
+        <MenuItem
+          onClick={() => {
+            setSettingsOpen(true);
+            handleClose();
+          }}
+        >
           <ListItemIcon>
             <SettingsIcon fontSize="small" />
           </ListItemIcon>
@@ -660,6 +672,13 @@ export default function Navigation({ currentPage, isOpen, onToggle, showBackButt
           </Typography>
         </Box>
       </Menu>
+      
+      <Settings
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        isDarkMode={isDarkMode}
+        onThemeToggle={toggleTheme}
+      />
     </>
   );
 } 

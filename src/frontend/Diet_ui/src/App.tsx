@@ -14,6 +14,7 @@ import DietPlanView from './components/DietPlan';
 import Dashboard from './components/Dashboard';
 import Progress from './components/Progress';
 import Achievements from './components/Achievements';
+import Profile from './components/Profile';
 import LoadingAnimation from './components/LoadingAnimation';
 import { lightTheme, darkTheme } from './theme';
 import { generateDietPlan } from './api/mockApi';
@@ -64,31 +65,68 @@ function ThemedApp() {
     updateUserData(formData);
   };
 
-  // Fetch diet plan when user data is available
+  const handleGenerateNewPlan = async () => {
+    if (!user || !user.userData) return;
+    
+    setIsLoading(true);
+    try {
+      const dietPlanData = await generateDietPlan(user.userData);
+      if (!dietPlanData || !dietPlanData.meals || !dietPlanData.nutrition || !dietPlanData.shoppingList) {
+        throw new Error('Invalid diet plan data received');
+      }
+      setDietPlan(dietPlanData);
+      // Update localStorage with new plan for this user
+      localStorage.setItem(`dietPlan_${user.email}`, JSON.stringify(dietPlanData));
+    } catch (err) {
+      console.error('Error generating new diet plan:', err);
+      setError(err instanceof Error ? err.message : 'Failed to generate new diet plan');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch diet plan when user data is available (load from cache or generate new)
   useEffect(() => {
-    const generatePlan = async () => {
+    const loadOrGeneratePlan = async () => {
       // Don't proceed if user or userData is not available
       if (!user || !user.userData) {
+        console.log('Skipping diet plan load - user or userData not available');
         setIsLoading(false);
         return;
       }
 
+      console.log('Loading/generating diet plan for:', user.email);
       setIsLoading(true);
       try {
-        const dietPlanData = await generateDietPlan(user.userData);
-        if (!dietPlanData || !dietPlanData.meals || !dietPlanData.nutrition || !dietPlanData.shoppingList) {
-          throw new Error('Invalid diet plan data received');
+        // Check localStorage first for cached diet plan
+        const cachedPlan = localStorage.getItem(`dietPlan_${user.email}`);
+        
+        if (cachedPlan) {
+          // Load from cache instead of generating
+          const parsedPlan = JSON.parse(cachedPlan);
+          console.log('Loaded cached diet plan for:', user.email);
+          setDietPlan(parsedPlan);
+        } else {
+          // Generate new plan if not cached
+          console.log('Generating new diet plan for:', user.email);
+          const dietPlanData = await generateDietPlan(user.userData);
+          if (!dietPlanData || !dietPlanData.meals || !dietPlanData.nutrition || !dietPlanData.shoppingList) {
+            throw new Error('Invalid diet plan data received');
+          }
+          setDietPlan(dietPlanData);
+          // Save to localStorage for this user
+          localStorage.setItem(`dietPlan_${user.email}`, JSON.stringify(dietPlanData));
+          console.log('Generated and cached diet plan for:', user.email);
         }
-        setDietPlan(dietPlanData);
       } catch (err) {
-        console.error('Error generating diet plan:', err);
-        setError(err instanceof Error ? err.message : 'Failed to generate diet plan');
+        console.error('Error loading/generating diet plan:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load diet plan');
       } finally {
         setIsLoading(false);
       }
     };
 
-    generatePlan();
+    loadOrGeneratePlan();
   }, [user]);
 
   // Determine current page based on path
@@ -150,7 +188,8 @@ function ThemedApp() {
                   ) : (
                     <DietPlanView 
                       dietPlan={dietPlan} 
-                      onBack={() => window.history.back()} 
+                      onBack={() => window.history.back()}
+                      onGenerateNewPlan={handleGenerateNewPlan}
                     />
                   )}
                 </ProtectedRoute>
@@ -173,10 +212,18 @@ function ThemedApp() {
               } 
             />
             <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/dashboard" 
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <Dashboard dietPlan={dietPlan} onGenerateNewPlan={handleGenerateNewPlan} />
                 </ProtectedRoute>
               } 
             />

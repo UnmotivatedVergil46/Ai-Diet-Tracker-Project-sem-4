@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 import requests
 from dotenv import load_dotenv
-
+from typing import Mapping
 # Load environment variables
 load_dotenv()
 
@@ -27,7 +27,7 @@ if src_dir not in sys.path:
 
 try:
     from user_management import UserProfile
-    from diet_generator import generate_diet_plan
+    from diet_generator import load_food_database
     from nutritional_analysis import analyze_nutrition
     from health_considerations import adjust_for_health_conditions
     from recommendation_engine import load_model, recommend_diet
@@ -55,7 +55,7 @@ def load_food_database():
     """Load and process the food database"""
     try:
         import pandas as pd
-        file_path = os.path.join(root_dir, 'data', 'food_database.csv')
+        file_path = os.path.join(root_dir, 'data', 'food_database_clean.csv')
         logger.info(f"Attempting to load food database from: {file_path}")
         
         if not os.path.exists(file_path):
@@ -66,9 +66,9 @@ def load_food_database():
         
         food_database = {}
         for _, row in df.iterrows():
-            food_name = row['food_name']
-            food_data = row.drop('food_name').to_dict()
-            food_database[food_name] = food_data
+            food = row['food']
+            food_data = row.drop('food').to_dict()
+            food_database[food] = food_data
         
         return food_database
     except Exception as e:
@@ -113,7 +113,7 @@ def generate_diet():
 
         # Generate initial diet plan
         try:
-            diet_plan = generate_diet_plan(user, food_database)
+            diet_plan = load_food_database
             logger.info("Successfully generated initial diet plan")
         except Exception as e:
             logger.error(f"Error generating diet plan: {str(e)}")
