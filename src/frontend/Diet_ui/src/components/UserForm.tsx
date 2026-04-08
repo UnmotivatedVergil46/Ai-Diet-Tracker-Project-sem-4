@@ -250,7 +250,7 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                     onChange={(e) => setFormData({ ...formData, weight: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    inputProps={{ min: 0, step: 1 }}
                   />
                 </Grid>
                 <Grid item xs={6}>
@@ -261,7 +261,7 @@ export default function UserForm({ onSubmit }: UserFormProps) {
                     onChange={(e) => setFormData({ ...formData, height: Math.max(0, Number(e.target.value)) })}
                     fullWidth
                     size="small"
-                    inputProps={{ min: 0, step: 0.1 }}
+                    inputProps={{ min: 0, step: 1 }}
                   />
                 </Grid>
               </Grid>
