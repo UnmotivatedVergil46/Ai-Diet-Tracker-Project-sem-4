@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # AI Diet Assistant
 
 Transform your health journey with a full-stack AI-powered diet and nutrition assistant. This project leverages modern web technologies and local LLMs to deliver personalized meal plans, nutrition analysis, and smart recommendations, all in a beautiful, user-friendly interface.
@@ -170,10 +170,6 @@ npm start
 - [Phi 3.1 Mini](https://huggingface.co/microsoft/Phi-3-mini-128k-instruct) for the model
 - [Material UI](https://mui.com/) for UI components
 - [Google Places API](https://developers.google.com/maps/documentation/places/web-service/overview)
-
----
-
-## 📄 License
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 =======
 # Ai-Diet-Tracker-project
